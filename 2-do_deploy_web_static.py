@@ -1,30 +1,31 @@
 #!/usr/bin/python3
-"""
-Fabric script based on the file 1-pack_web_static.py that distributes an
-archive to the web servers
+""" This is a fabfile script pushes the webstatic archive to the webserver
+    and decompresses it.
 """
 
-from fabric.api import put, run, env
-from os.path import exists
-env.hosts = ['3.88.216.149', '54.86.37.25']
+from fabric.api import *
+
+env.user = 'ubuntu'
+env.hosts = ['18.212.210.50', '54.89.116.191']
 
 
 def do_deploy(archive_path):
-    """distributes an archive to the web servers"""
-    if exists(archive_path) is False:
+    """ This function uploads the archive file and decompresses it to right
+     folders in the server."""
+    fil = archive_path[8:]
+    filename = archive_path[8:-4]
+    upload = put(archive_path, "/tmp/")
+    if upload.failed:
         return False
-    try:
-        file_n = archive_path.split("/")[-1]
-        no_ext = file_n.split(".")[0]
-        path = "/data/web_static/releases/"
-        put(archive_path, '/tmp/')
-        run('mkdir -p {}{}/'.format(path, no_ext))
-        run('tar -xzf /tmp/{} -C {}{}/'.format(file_n, path, no_ext))
-        run('rm /tmp/{}'.format(file_n))
-        run('mv {0}{1}/web_static/* {0}{1}/'.format(path, no_ext))
-        run('rm -rf {}{}/web_static'.format(path, no_ext))
-        run('rm -rf /data/web_static/current')
-        run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
-        return True
-    except:
-        return False
+    run("mkdir -p /data/web_static/releases/{}/".format(filename))
+    run("tar -xzf /tmp/{} -C /data/web_static/releases/{}/".format(
+        fil, filename))
+    run("mv /data/web_static/releases/{0}/web_static/* /data/\
+web_static/releases/{0}/".format(filename))
+    run("rm -rf /data/web_static/releases/{}/web_static".format(filename))
+    run("rm /tmp/{}".format(fil))
+    run("rm -rf /data/web_static/current")
+    run("ln -s /data/web_static/releases/{}/ /data/web_static/current".format(
+        filename))
+    print("New version deployed!")
+    return True
